@@ -164,7 +164,7 @@ src/main/java/com/felipe/webhook_listener_api
 ## Testes
 
 ```powershell
-.\mvnw.cmd clean test
+.\mvnw.cmd test
 ```
 
 Cobre fluxo valido, assinatura invalida, payload invalido, duplicidade, listagem e unicidade no repositorio.

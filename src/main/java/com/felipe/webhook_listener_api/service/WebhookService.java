@@ -1,5 +1,6 @@
 package com.felipe.webhook_listener_api.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.felipe.webhook_listener_api.dto.WebhookEventRequest;
 import com.felipe.webhook_listener_api.dto.WebhookEventResponse;
 import com.felipe.webhook_listener_api.entity.WebhookEvent;
@@ -17,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
