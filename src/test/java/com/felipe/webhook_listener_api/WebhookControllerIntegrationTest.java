@@ -54,7 +54,7 @@ class WebhookControllerIntegrationTest {
 		mockMvc.perform(
 				post("/webhooks/github")
 					.contentType(MediaType.APPLICATION_JSON)
-					.header("X-Signature", signatureFor(payload))
+					.header("X-Hub-Signature-256", signatureFor(payload))
 					.content(payload)
 			)
 			.andExpect(status().isCreated())
@@ -80,7 +80,7 @@ class WebhookControllerIntegrationTest {
 					.content(payload)
 			)
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.message", is("X-Signature header is required")));
+			.andExpect(jsonPath("$.message", is("X-Hub-Signature-256 header is required")));
 	}
 
 	@Test
@@ -97,7 +97,7 @@ class WebhookControllerIntegrationTest {
 		mockMvc.perform(
 				post("/webhooks/github")
 					.contentType(MediaType.APPLICATION_JSON)
-					.header("X-Signature", "sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+					.header("X-Hub-Signature-256", "sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 					.content(payload)
 			)
 			.andExpect(status().isUnauthorized())
@@ -117,12 +117,34 @@ class WebhookControllerIntegrationTest {
 		mockMvc.perform(
 				post("/webhooks/github")
 					.contentType(MediaType.APPLICATION_JSON)
-					.header("X-Signature", signatureFor(payload))
+					.header("X-Hub-Signature-256", signatureFor(payload))
 					.content(payload)
 			)
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.message", is("Payload validation failed")))
 			.andExpect(jsonPath("$.validationErrors.action", is("action is required")));
+	}
+
+	@Test
+	void shouldRejectPayloadWhenFieldExceedsDatabaseConstraint() throws Exception {
+		String payload = """
+			{
+			  "id": "evt-123",
+			  "action": "%s",
+			  "repository": "felipe/webhook-listener-api",
+			  "timestamp": "2026-04-13T18:00:00Z"
+			}
+			""".formatted("a".repeat(101));
+
+		mockMvc.perform(
+				post("/webhooks/github")
+					.contentType(MediaType.APPLICATION_JSON)
+					.header("X-Hub-Signature-256", signatureFor(payload))
+					.content(payload)
+			)
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.message", is("Payload validation failed")))
+			.andExpect(jsonPath("$.validationErrors.action", is("action must be at most 100 characters")));
 	}
 
 	@Test
@@ -139,7 +161,7 @@ class WebhookControllerIntegrationTest {
 		mockMvc.perform(
 				post("/webhooks/github")
 					.contentType(MediaType.APPLICATION_JSON)
-					.header("X-Signature", signatureFor(payload))
+					.header("X-Hub-Signature-256", signatureFor(payload))
 					.content(payload)
 			)
 			.andExpect(status().isCreated());
@@ -147,7 +169,7 @@ class WebhookControllerIntegrationTest {
 		mockMvc.perform(
 				post("/webhooks/github")
 					.contentType(MediaType.APPLICATION_JSON)
-					.header("X-Signature", signatureFor(payload))
+					.header("X-Hub-Signature-256", signatureFor(payload))
 					.content(payload)
 			)
 			.andExpect(status().isConflict())

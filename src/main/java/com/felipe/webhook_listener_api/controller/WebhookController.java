@@ -37,7 +37,7 @@ public class WebhookController {
 		@ApiResponse(responseCode = "409", description = "Duplicated event", content = @Content(schema = @Schema(hidden = true)))
 	})
 	public ResponseEntity<WebhookEventResponse> receiveGitHubWebhook(
-		@RequestHeader(value = "X-Signature", required = false) String signature,
+		@RequestHeader(value = "X-Hub-Signature-256", required = false) String signature,
 		@RequestBody String rawBody
 	) {
 		WebhookEventResponse response = webhookService.processGitHubWebhook(signature, rawBody);

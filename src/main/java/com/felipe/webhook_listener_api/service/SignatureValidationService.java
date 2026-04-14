@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SignatureValidationService {
 
+	private static final String SIGNATURE_HEADER_NAME = "X-Hub-Signature-256";
 	private static final String SIGNATURE_PREFIX = "sha256=";
 	private static final HexFormat HEX_FORMAT = HexFormat.of();
 
@@ -28,11 +29,11 @@ public class SignatureValidationService {
 
 	public void validate(String signatureHeader, String rawBody) {
 		if (signatureHeader == null || signatureHeader.isBlank()) {
-			throw new InvalidPayloadException("X-Signature header is required");
+			throw new InvalidPayloadException(SIGNATURE_HEADER_NAME + " header is required");
 		}
 
 		if (!signatureHeader.startsWith(SIGNATURE_PREFIX) || signatureHeader.length() != SIGNATURE_PREFIX.length() + 64) {
-			throw new InvalidPayloadException("X-Signature header must follow the format sha256=<hex>");
+			throw new InvalidPayloadException(SIGNATURE_HEADER_NAME + " header must follow the format sha256=<hex>");
 		}
 
 		byte[] expectedSignature = sign(rawBody);
@@ -41,7 +42,7 @@ public class SignatureValidationService {
 		try {
 			receivedSignature = HEX_FORMAT.parseHex(signatureHeader.substring(SIGNATURE_PREFIX.length()));
 		} catch (IllegalArgumentException exception) {
-			throw new InvalidPayloadException("X-Signature header must contain a valid hexadecimal signature");
+			throw new InvalidPayloadException(SIGNATURE_HEADER_NAME + " header must contain a valid hexadecimal signature");
 		}
 
 		// The signature must be calculated from the exact JSON body received by the endpoint.

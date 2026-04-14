@@ -10,11 +10,13 @@ import com.felipe.webhook_listener_api.exception.InvalidPayloadException;
 import com.felipe.webhook_listener_api.repository.WebhookEventRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,10 +39,6 @@ public class WebhookService {
 		WebhookEventRequest request = deserialize(rawBody);
 		validate(request);
 
-		if (webhookEventRepository.existsByExternalEventId(request.id())) {
-			throw new DuplicateEventException("Webhook event with externalEventId " + request.id() + " already exists");
-		}
-
 		WebhookEvent event = WebhookEvent.builder()
 			.externalEventId(request.id())
 			.source(GITHUB_SOURCE)
@@ -54,7 +52,10 @@ public class WebhookService {
 		try {
 			return toResponse(webhookEventRepository.saveAndFlush(event));
 		} catch (DataIntegrityViolationException exception) {
-			throw new DuplicateEventException("Webhook event with externalEventId " + request.id() + " already exists");
+			if (isDuplicateExternalEventIdViolation(exception)) {
+				throw new DuplicateEventException("Webhook event with externalEventId " + request.id() + " already exists");
+			}
+			throw exception;
 		}
 	}
 
@@ -97,5 +98,28 @@ public class WebhookService {
 			event.getReceivedAt(),
 			event.getStatus()
 		);
+	}
+
+	private boolean isDuplicateExternalEventIdViolation(DataIntegrityViolationException exception) {
+		Throwable current = exception;
+		while (current != null) {
+			if (current instanceof ConstraintViolationException constraintViolationException) {
+				String constraintName = constraintViolationException.getConstraintName();
+				if ("uk_webhook_events_external_event_id".equalsIgnoreCase(constraintName)) {
+					return true;
+				}
+			}
+			if (current instanceof SQLException sqlException) {
+				if ("23505".equals(sqlException.getSQLState())) {
+					return true;
+				}
+			}
+			String message = current.getMessage();
+			if (message != null && message.contains("external_event_id")) {
+				return true;
+			}
+			current = current.getCause();
+		}
+		return false;
 	}
 }
